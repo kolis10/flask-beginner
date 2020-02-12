@@ -30,6 +30,7 @@ class Zipcode(db.Model):
 
     def serialize(self):
         return {
+            "id" : self.id,
             "city": self.city,
             "state": self.state,
             "longitude": self.longitude,

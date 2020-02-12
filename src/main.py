@@ -33,14 +33,37 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/zip_code', methods=['GET'])
-def handle_person():
+@app.route('/zipcode/<id>', methods=['POST', 'GET'])
+def handle_person(id):
 
-    zip = Zipcode.query.get(6453)
+    # zip = Zipcode.query.get(6453)
+    # zip_dict = zip.serialize()
+    zip = request.get_json()
 
-    return zip.city
+    if not id.isnumeric():
+        return 'id must be a number'
+        
+    zip = Zipcode.query.get(int(id))
+    if zip is None:
+        return 'Area Not Found'
 
-@app.route('/zipcode', methods=['POST'])
+    return jsonify(zip.serialize())
+
+@app.route('/zipcode', methods=['POST', 'GET'])
+def get_cities():
+
+    zips = Zipcode.query.filter(Zipcode.city.ilike('%POINT%'))
+
+    zip_dict = []
+    for cities in zips:
+        zip_dict.append(cities.serialize())
+
+    return jsonify({
+        'count' : len(zip_dict),
+        'list' : zip_dict
+        })
+
+@app.route('/zip_code', methods=['POST'])
 def handle_zip():
 
     zip = request.get_json()
