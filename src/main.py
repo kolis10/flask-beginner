@@ -33,7 +33,14 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/zipcode', methods=['POST', 'GET'])
+@app.route('/zip_code', methods=['GET'])
+def handle_person():
+
+    zip = Zipcode.query.get(6453)
+
+    return zip.city
+
+@app.route('/zipcode', methods=['POST'])
 def handle_zip():
 
     zip = request.get_json()
@@ -55,7 +62,7 @@ def handle_zip():
     print(zipcodes[zip["zip"]])    
     return 'successfully made'
 
-@app.route('/all_zips', methods=['POST', 'GET'])
+@app.route('/all_zips', methods=['POST'])
 def handle_all_zips():
 
     with open('src/zipcodes.json','r') as f:
