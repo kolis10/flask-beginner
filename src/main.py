@@ -3,13 +3,15 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 import os
 import requests
+import json
 from flask import Flask, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
-from models import db
-#from models import Person
+from models import db, Person, Zipcode
+
+
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -18,8 +20,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
-data = requests.get('https://assets.breatheco.de/apis/fake/zips.php').json()
-data = create_datastructure(data)
+
+
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -32,15 +34,57 @@ def sitemap():
     return generate_sitemap(app)
 
 @app.route('/zipcode', methods=['POST', 'GET'])
-def find_new_city(data, city_name):
-    info = []
-    for key in data.keys():
-        if data[key] == a:
-            info.append({
-                'zip_code': key,
-                **data[key]
-            })
-    return info
+def handle_zip():
+
+    zip = request.get_json()
+
+    with open('src/zipcodes.json','r') as f:
+        zipcodes = json.load(f)
+
+    direct = zipcodes[zip["zip"]]
+    db.session.add(Zipcode(
+        city = direct["city"],
+        state = direct["state"],
+        latitude = direct["latitude"],
+        longitude = direct["longitude"],
+        population = direct["population"],
+        zip_code = direct["zip"]
+
+    ))
+    db.session.commit()
+    print(zipcodes[zip["zip"]])    
+    return 'successfully made'
+
+@app.route('/all_zips', methods=['POST', 'GET'])
+def handle_all_zips():
+
+    with open('src/zipcodes.json','r') as f:
+        zipcodes = json.load(f)
+
+    # for key in zipcodes.keys():
+    #     z = zipcodes[key]
+    #     db.session.add(Zipcode(
+    #         city = z["city"],
+    #         state = z["state"],
+    #         latitude = z["latitude"],
+    #         longitude = z["longitude"],
+    #         population = z["population"],
+    #         zip_code = z["zip"]
+
+    #     ))
+    for v in zipcodes.values():
+        db.session.add(Zipcode(
+            city = v["city"],
+            state = v["state"],
+            latitude = v["latitude"],
+            longitude = v["longitude"],
+            population = v["population"],
+            zip_code = v["zip"]
+
+        ))
+    
+    db.session.commit()
+    return 'success'
 
 @app.route('/hello', methods=['POST', 'GET'])
 def handle_hello():
@@ -54,6 +98,17 @@ def handle_hello():
         return jsonify(json["age"])
     if request.method == 'GET':
         return 'You used a GET method'
+
+@app.route('/register')
+def register():
+    json = request.get_json()
+    info = Person(
+        username = json['username'],
+        email = json['email']
+    )
+    db.session.add(info)
+    db.session.commit()
+    return 'user added'
 
 @app.route('/login', methods=['POST']) 
 def handle_login():
